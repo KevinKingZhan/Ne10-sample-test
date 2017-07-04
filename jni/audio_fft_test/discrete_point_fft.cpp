@@ -2,7 +2,7 @@
 
 #define LOG_TAG "Ne10_DisCretePointFFT"
 
-#define DSP_SAMPLES 16
+#define DSP_SAMPLES 64
 #define PI (float)3.14159265358979323846
 
 DisCretePointFFT::DisCretePointFFT() {
@@ -77,6 +77,25 @@ void DisCretePointFFT::mayerFFTProcess(short* buffer, int size) {
 		float result = m_fftfreqre[i] * m_fftfreqre[i] + m_fftfreqim[i] * m_fftfreqim[i];
 		LOGI("index is %d result is %.6f", i, result);
 	}
+//	ne10_float32_t* in = (ne10_float32_t*) NE10_MALLOC(DSP_SAMPLES * sizeof(ne10_float32_t));
+//	for (int i = 0; i < size; i++) {
+//		in[i] = buffer[i] / 32768.0f * m_hannwindow[i];
+//	}
+//	ne10_fft_cpx_float32_t* out = (ne10_fft_cpx_float32_t*) NE10_MALLOC(DSP_SAMPLES * sizeof(ne10_fft_cpx_float32_t));
+//	ne10_fft_r2c_1d_float32_neon(out, in, cfg);
+//	for (int i = 0; i < size; i++) {
+//		float re = out[i].r;
+//		float im = out[i].i;
+//		float result = re * re + im * im;
+//		int correctIndex = m_corrsize - (i+2-m_corrsize);
+//		float expectRe = i >= m_corrsize ? m_fftfreqre[correctIndex] : m_fftfreqre[i];
+//		float expectIm = i >= m_corrsize ? (0 - m_fftfreqim[correctIndex]) : m_fftfreqim[i];
+//		LOGI("IN[%d] is %.4f --> Expected OUT[%d] %.4f + %.4fi; ",
+//				i, m_ffttime[i], i, expectRe, expectIm);
+//		LOGI("	    Actual OUT[%d] %.4f + %.4fi ",  i, re, im);
+//	}
+//	NE10_FREE(in);
+//	NE10_FREE(out);
 }
 
 void DisCretePointFFT::mayerFFTDestroy() {
@@ -107,14 +126,20 @@ void DisCretePointFFT::dspFFTProcess(short* buffer, int size) {
 		float result = re * re + im * im;
 		LOGI("index is %d result is %.6f", i, result);
 	}
-	LOGI("Ne10 CPU Cal Result:");
-	ne10_fft_r2c_1d_float32_c(out, in, cfg);
+	ne10_fft_c2r_1d_float32_neon(in, out, cfg);
 	for (int i = 0; i < m_corrsize - 1; i++) {
-		float re = out[i].r;
-		float im = out[i].i;
-		float result = re * re + im * im;
-		LOGI("index is %d result is %.6f", i, result);
+//		in[i] = in[i] / DSP_SAMPLES;
+		buffer[i] = in[i] / m_hannwindow[i] * 32768.0f;
+//		LOGI("buffer is %d result is %d", i, buffer[i]);
 	}
+//	LOGI("Ne10 CPU Cal Result:");
+//	ne10_fft_r2c_1d_float32_c(out, in, cfg);
+//	for (int i = 0; i < m_corrsize - 1; i++) {
+//		float re = out[i].r;
+//		float im = out[i].i;
+//		float result = re * re + im * im;
+//		LOGI("index is %d result is %.6f", i, result);
+//	}
 	NE10_FREE(in);
 	NE10_FREE(out);
 }

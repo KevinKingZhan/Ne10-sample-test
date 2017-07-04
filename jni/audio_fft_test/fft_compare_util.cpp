@@ -14,9 +14,11 @@ FFTCompareUtil::FFTCompareUtil() {
 	memset(m_ffttime, 0, sizeof(float) * DSP_SAMPLES);
 	m_corrsize = DSP_SAMPLES / 2 + 1;
 	m_fftfreqre = new float[m_corrsize];
-	memset(m_fftfreqre, 0, sizeof(float) * DSP_SAMPLES);
+	memset(m_fftfreqre, 0, sizeof(float) * m_corrsize);
 	m_fftfreqim = new float[m_corrsize];
-	memset(m_fftfreqim, 0, sizeof(float) * DSP_SAMPLES);
+	memset(m_fftfreqim, 0, sizeof(float) * m_corrsize);
+	mayerFFTTmpResult = new float[m_corrsize];
+	memset(mayerFFTTmpResult, 0, sizeof(float) * m_corrsize);
 	cfg = 0;
 	m_hannwindow = new float[DSP_SAMPLES];
     memset(m_hannwindow, 0, sizeof(float) * DSP_SAMPLES);
@@ -53,10 +55,35 @@ void FFTCompareUtil::test(const char* audioFilePath, const char* mayerFFTResultP
 	/** 读取声音文件，并且加汉明窗，然后做FFT **/
 	short* buffer = new short[DSP_SAMPLES];
 	int actualSize = -1;
+	int mayerFFTTime = 0;
+	int mayerIFFTTime = 0;
+	int dspFFTTime = 0;
+	int dspIFFTTime = 0;
+	float* inBuffer = new float[DSP_SAMPLES];
+	float* outBuffer = new float[DSP_SAMPLES];
 	while ((actualSize = fread(buffer, sizeof(short), DSP_SAMPLES, audioFile)) > 0) {
-		this->mayerFFTProcess(buffer, actualSize);
-		this->dspFFTProcess(buffer, actualSize);
+	    for (int i = 0; i < actualSize; i++) {
+	    		inBuffer[i] = buffer[i] / 32768.0f * m_hannwindow[i];
+	    }
+	    //Do FFT
+		long long startTimeUs = currentTimeUs();
+		this->mayerFFTProcess(inBuffer, actualSize);
+		mayerFFTTime+=(currentTimeUs() - startTimeUs);
+		startTimeUs = currentTimeUs();
+		this->dspFFTProcess(inBuffer, actualSize);
+		dspFFTTime+=(currentTimeUs() - startTimeUs);
+		//DO IFFT
+		startTimeUs = currentTimeUs();
+		this->mayerIFFTProcess(outBuffer, actualSize);
+		mayerIFFTTime+=(currentTimeUs() - startTimeUs);
+		startTimeUs = currentTimeUs();
+		this->dspIFFTProcess(outBuffer, actualSize);
+		dspIFFTTime+=(currentTimeUs() - startTimeUs);
 	}
+	LOGI("mayerFFTTime is %d us dspFFTTime is %d us", mayerFFTTime, dspFFTTime);
+	LOGI("mayerIFFTTime is %d us dspIFFTTime is %d us", mayerIFFTTime, dspIFFTTime);
+	delete[] inBuffer;
+	delete[] outBuffer;
 	delete[] buffer;
 	/** 销毁两个FFT的实现 **/
 	this->mayerFFTDestroy();
@@ -69,15 +96,19 @@ void FFTCompareUtil::test(const char* audioFilePath, const char* mayerFFTResultP
 void FFTCompareUtil::mayerFFTInit() {
 	fftRoutine = new FftRoutine(DSP_SAMPLES);
 }
-void FFTCompareUtil::mayerFFTProcess(short* buffer, int size) {
-	for(int i = 0; i < size; i++) {
-		m_ffttime[i] = buffer[i] / 32768.0f * m_hannwindow[i];
-	}
-	fftRoutine->fft_forward(m_ffttime, m_fftfreqre, m_fftfreqim);
-	for(int i = 0; i < m_corrsize - 1; i++) {
-		float result = m_fftfreqre[i] * m_fftfreqre[i] + m_fftfreqim[i] * m_fftfreqim[i];
-		fwrite(&result, sizeof(float), 1, mayerFFTResultFile);
-	}
+void FFTCompareUtil::mayerIFFTProcess(float* buffer, int size) {
+	fftRoutine->fft_inverse(m_fftfreqre, m_fftfreqim, buffer);
+}
+void FFTCompareUtil::mayerFFTProcess(float* buffer, int size) {
+//	for(int i = 0; i < size; i++) {
+//		m_ffttime[i] = buffer[i] / 32768.0f * m_hannwindow[i];
+//	}
+	fftRoutine->fft_forward(buffer, m_fftfreqre, m_fftfreqim);
+//	for(int i = 0; i < m_corrsize - 1; i++) {
+//		float result = m_fftfreqre[i] * m_fftfreqre[i] + m_fftfreqim[i] * m_fftfreqim[i];
+//		mayerFFTTmpResult[i] = result;
+//		fwrite(&result, sizeof(float), 1, mayerFFTResultFile);
+//	}
 }
 
 void FFTCompareUtil::mayerFFTDestroy() {
@@ -97,28 +128,39 @@ void FFTCompareUtil::dspFFTInit() {
 	// structure for inputs of length `SAMPLES`. (You need only generate this once for a
 	// particular input size.)
 	cfg = ne10_fft_alloc_r2c_float32(DSP_SAMPLES);
+//	in=(ne10_float32_t*) NE10_MALLOC (DSP_SAMPLES * sizeof (ne10_float32_t));
+    out = (ne10_fft_cpx_float32_t*) NE10_MALLOC (DSP_SAMPLES * sizeof (ne10_fft_cpx_float32_t));
 }
 
-void FFTCompareUtil::dspFFTProcess(short* buffer, int size) {
-	ne10_float32_t* in=(ne10_float32_t*) NE10_MALLOC (DSP_SAMPLES * sizeof (ne10_float32_t));
-    for (int i = 0; i < size; i++) {
-        in[i] = buffer[i] / 32768.0f * m_hannwindow[i];
-    }
-    ne10_fft_cpx_float32_t* out = (ne10_fft_cpx_float32_t*) NE10_MALLOC (DSP_SAMPLES * sizeof (ne10_fft_cpx_float32_t));
+void FFTCompareUtil::dspIFFTProcess(float* buffer, int size) {
+	ne10_fft_c2r_1d_float32_neon(in, out, cfg);
+	memcpy(buffer, in, sizeof(float) * size);
+}
+
+void FFTCompareUtil::dspFFTProcess(float* buffer, int size) {
+//	ne10_mulc_float_neon
+//	ne10_divc_float_neon
+//    for (int i = 0; i < size; i++) {
+//        in[i] = buffer[i] / 32768.0f * m_hannwindow[i];
+//    }
+    in = buffer;
 	// Perform the FFT (for an IFFT, the last parameter should be `1`)
 	ne10_fft_r2c_1d_float32_neon(out, in, cfg);
-	for(int i = 0; i < m_corrsize - 1; i++) {
-		float re = out[i].r;
-		float im = out[i].i;
-		float result = re * re + im * im;
-		fwrite(&result, sizeof(float), 1, dspFFTResultFile);
-	}
-    NE10_FREE(in);
-    NE10_FREE(out);
+//	for(int i = 0; i < m_corrsize - 1; i++) {
+//		float re = out[i].r;
+//		float im = out[i].i;
+//		float result = re * re + im * im;
+//		if(abs(result - mayerFFTTmpResult[i]) > 0.01) {
+//			LOGI("Actual is %.3f Expected is %.3f", result, mayerFFTTmpResult[i]);
+//		}
+//		fwrite(&result, sizeof(float), 1, dspFFTResultFile);
+//	}
 }
 
 void FFTCompareUtil::dspFFTDestroy() {
 	// Free the allocated configuration structure
 //	ne10_fft_destroy_c2c_float32(cfg);
+//    NE10_FREE(in);
+    NE10_FREE(out);
     NE10_FREE(cfg);
 }

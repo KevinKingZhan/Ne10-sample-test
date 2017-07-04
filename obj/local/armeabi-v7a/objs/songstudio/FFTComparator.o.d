@@ -1,10 +1,10 @@
-obj/local/armeabi-v7a/objs/songstudio/SongStudio.o: jni/SongStudio.cpp \
- jni/com_example_ne10_sample_Ne10Tester.h \
+obj/local/armeabi-v7a/objs/songstudio/FFTComparator.o: \
+ jni/FFTComparator.cpp jni/com_example_ne10_sample_FFTComparator.h \
  /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/jni.h \
  /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/sys/cdefs.h \
  /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/sys/cdefs_elf.h \
  /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/android/api-level.h \
- jni/test/matrix_multiply_tester.h jni/common/CommonTools.h \
+ jni/audio_fft_test/fft_compare_util.h jni/common/CommonTools.h \
  /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/android/log.h \
  /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/stdio.h \
  /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/sys/types.h \
@@ -40,10 +40,13 @@ obj/local/armeabi-v7a/objs/songstudio/SongStudio.o: jni/SongStudio.cpp \
  /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/assert.h \
  jni/inc/NE10_macros.h jni/inc/NE10_init.h jni/inc/NE10.h \
  jni/inc/NE10_math.h jni/inc/NE10_dsp.h jni/inc/NE10_imgproc.h \
- jni/inc/NE10_physics.h jni/test/intro_tester.h jni/test/fir_tester.h \
- jni/test/fft_tester.h
+ jni/inc/NE10_physics.h jni/audio_fft_test/./mayer_fft/fft_routine.h \
+ jni/audio_fft_test/./mayer_fft/./mayer_fft.h \
+ jni/audio_fft_test/fft_performance_tester.h \
+ jni/audio_fft_test/./slide_window/slide_window.h \
+ jni/audio_fft_test/discrete_point_fft.h
 
-jni/com_example_ne10_sample_Ne10Tester.h:
+jni/com_example_ne10_sample_FFTComparator.h:
 
 /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/jni.h:
 
@@ -53,7 +56,7 @@ jni/com_example_ne10_sample_Ne10Tester.h:
 
 /Users/apple/soft/android/android-ndk-r10d/platforms/android-15/arch-arm/usr/include/android/api-level.h:
 
-jni/test/matrix_multiply_tester.h:
+jni/audio_fft_test/fft_compare_util.h:
 
 jni/common/CommonTools.h:
 
@@ -137,8 +140,12 @@ jni/inc/NE10_imgproc.h:
 
 jni/inc/NE10_physics.h:
 
-jni/test/intro_tester.h:
+jni/audio_fft_test/./mayer_fft/fft_routine.h:
 
-jni/test/fir_tester.h:
+jni/audio_fft_test/./mayer_fft/./mayer_fft.h:
 
-jni/test/fft_tester.h:
+jni/audio_fft_test/fft_performance_tester.h:
+
+jni/audio_fft_test/./slide_window/slide_window.h:
+
+jni/audio_fft_test/discrete_point_fft.h:
